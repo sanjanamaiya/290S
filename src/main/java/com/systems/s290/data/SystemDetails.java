@@ -18,6 +18,18 @@ public class SystemDetails {
 	public void setTargetConnectionStrings(List<String> targetConnectionStrings) {
 		this.targetConnectionStrings = targetConnectionStrings;
 	}
+	
+	// TODO this needs to be set based on application conf
+	public int getServerCount()
+	{
+		return 5;
+	}
+	
+	// TODO
+	public void setServerCount()
+	{
+		
+	}
 
 	public String getKey() {
 		return key;

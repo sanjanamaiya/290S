@@ -20,32 +20,35 @@ public class ConsistentHashSplit implements DataSplit {
 		ConsistentHash<String> consistentHash = new ConsistentHash<String>(5, systemDetails.getConnectionStrings());
 
 		// read from source, hash and populate to target
-		Connection source = MySQLDataSource.getConnection(systemDetails.getSourceConnectionString());
-		ResultSet rs = source.createStatement().executeQuery(systemDetails.getSelectQuery());
-		while (rs.next()) {
-			// bin for this key
-			String primaryKeyValue = rs.getString(systemDetails.getKey());
-			String bin = consistentHash.getBinFor(primaryKeyValue);
-			Connection target = MySQLDataSource.getConnection(bin);
+		try(Connection source = MySQLDataSource.getConnection(systemDetails.getSourceConnectionString())) {
+			ResultSet rs = source.createStatement().executeQuery(systemDetails.getSelectQuery());
+			while (rs.next()) {
+				// bin for this key
+				String primaryKeyValue = rs.getString(systemDetails.getKey());
+				String bin = consistentHash.getBinFor(primaryKeyValue);
+				Connection target = MySQLDataSource.getConnection(bin);
 
-			try {
-				PreparedStatement preparedStatement = target.prepareStatement(systemDetails.getInsertQuery());
-				for (int i = 0; i < systemDetails.getColumnCount(); i++) {
-					preparedStatement.setString(i+1, rs.getString(i + 1));
+				try {
+					PreparedStatement preparedStatement = target.prepareStatement(systemDetails.getInsertQuery());
+					for (int i = 0; i < systemDetails.getColumnCount(); i++) {
+						preparedStatement.setString(i+1, rs.getString(i + 1));
+					}
+
+					preparedStatement.execute();
+				} catch (Exception e) {
+					LOG.info("Exception while writing "+primaryKeyValue, e);
+					
+				} finally {
+					target.close();
 				}
-
-				preparedStatement.execute();
-			} catch (Exception e) {
-				LOG.info("Exception while writing "+primaryKeyValue, e);
-				
-			} finally {
-				target.close();
 			}
-
 		}
+	}
 
-		source.close();
-
+	@Override
+	public void recreate(SystemDetails mDetails) throws SQLException {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
