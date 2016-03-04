@@ -6,10 +6,6 @@ public class SystemDetails {
 
 	private List<String> targetConnectionStrings;
 	private String sourceConnectionString;
-	private String key;
-	private String selectQuery;
-	private String insertQuery;
-	private int columnCount;
 
 	public List<String> getTargetConnectionStrings() {
 		return targetConnectionStrings;
@@ -18,39 +14,13 @@ public class SystemDetails {
 	public void setTargetConnectionStrings(List<String> targetConnectionStrings) {
 		this.targetConnectionStrings = targetConnectionStrings;
 	}
-
-	public String getKey() {
-		return key;
+	
+	// TODO this needs to be set based on application conf
+	public int getServerCount()
+	{
+		return targetConnectionStrings.size();
 	}
-
-	public void setKey(String key) {
-		this.key = key;
-	}
-
-	public String getSelectQuery() {
-		return selectQuery;
-	}
-
-	public void setSelectQuery(String selectQuery) {
-		this.selectQuery = selectQuery;
-	}
-
-	public String getInsertQuery() {
-		return insertQuery;
-	}
-
-	public void setInsertQuery(String insertQuery) {
-		this.insertQuery = insertQuery;
-	}
-
-	public int getColumnCount() {
-		return columnCount;
-	}
-
-	public void setColumnCount(int columnCount) {
-		this.columnCount = columnCount;
-	}
-
+	
 	
 
 	public List<String> getConnectionStrings() {
