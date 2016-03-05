@@ -6,13 +6,13 @@ import org.slf4j.LoggerFactory;
 import com.cloudera.util.consistenthash.HashFunction;
 import com.cloudera.util.consistenthash.MD5HashFunction;
 
-public class StaticHashSplit implements DataSplit {
+public class StaticHashStrategy implements HashingStrategy {
 
-	static final Logger LOG = LoggerFactory.getLogger(DataSplit.class);
+	static final Logger LOG = LoggerFactory.getLogger(HashingStrategy.class);
 	private HashFunction hashFunction;
 	private SystemDetails systemDetails;
 	
-	public StaticHashSplit(SystemDetails systemDetails) {
+	public StaticHashStrategy(SystemDetails systemDetails) {
 		this.hashFunction = new MD5HashFunction();
 		this.systemDetails = systemDetails;
 	}
@@ -27,7 +27,7 @@ public class StaticHashSplit implements DataSplit {
 		return "TweetsS";
 	}
 
-	private int getHash(long userId, int count) {
+	public int getHash(long userId, int count) {
 		return hashFunction.hash(userId) % count;
 	}
 
