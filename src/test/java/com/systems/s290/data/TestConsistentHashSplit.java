@@ -20,7 +20,7 @@ public class TestConsistentHashSplit  {
 		connectionStrings.add("instance290-5.cqxovt941ynz.us-west-2.rds.amazonaws.com:3306");
 		details.setConnectionStrings(connectionStrings);
 		details.setSourceConnectionString("instance290-0.cqxovt941ynz.us-west-2.rds.amazonaws.com:3306");
-		DataSplit split = new ConsistentHashSplit(details);
+		HashingStrategy split = new ConsistentHashStrategy(details);
 		new SplitTemplate().recreate(split, details);
 	}
 	
