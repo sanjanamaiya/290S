@@ -19,14 +19,14 @@ public class SplitTemplate {
 	private static final String SOURCE_SELECT_QUERY = "select * from main.Tweets limit ?,? ";
 	static final Logger LOG = LoggerFactory.getLogger(SplitTemplate.class);
 
-	public void recreate(HashingStrategy strategy, SystemDetails sysDetails) throws SQLException {
+	public void recreate(DataSplit strategy, SystemDetails sysDetails) throws SQLException {
 
 		clearDataFromServers(sysDetails, strategy.getTargetTableName());
 		runSplit(strategy, sysDetails);
 
 	}
 
-	public void runSplit(HashingStrategy strategy, SystemDetails systemDetails) throws SQLException {
+	public void runSplit(DataSplit strategy, SystemDetails systemDetails) throws SQLException {
 
 		LOG.info("Begin split with strategy " + strategy.getClass());
 		long time = System.nanoTime();
@@ -59,7 +59,7 @@ public class SplitTemplate {
 		LOG.info("Split completed in " + (System.nanoTime() - time));
 	}
 
-	private void splitInChunks(HashingStrategy strategy, List<ArrayList<TwitterStatus>> hashedList, Connection sourceConn,
+	private void splitInChunks(DataSplit strategy, List<ArrayList<TwitterStatus>> hashedList, Connection sourceConn,
 			int startLimit) throws SQLException {
 
 		try (PreparedStatement stmt = sourceConn.prepareStatement(SOURCE_SELECT_QUERY)) {

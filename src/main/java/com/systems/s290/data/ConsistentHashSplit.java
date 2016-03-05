@@ -5,13 +5,13 @@ import org.slf4j.LoggerFactory;
 
 import com.cloudera.util.consistenthash.ConsistentHash;
 
-public class ConsistentHashStrategy implements HashingStrategy {
+public class ConsistentHashSplit implements DataSplit {
 
-	static final Logger LOG = LoggerFactory.getLogger(HashingStrategy.class);
+	static final Logger LOG = LoggerFactory.getLogger(DataSplit.class);
 	private ConsistentHash<String> consistentHash;
 	private SystemDetails systemDetails;
 	
-	public ConsistentHashStrategy(SystemDetails systemDetails) {
+	public ConsistentHashSplit(SystemDetails systemDetails) {
 		consistentHash = new ConsistentHash<String>(systemDetails.getServerCount(), systemDetails.getConnectionStrings());
 		this.systemDetails = systemDetails;
 	}
@@ -19,14 +19,9 @@ public class ConsistentHashStrategy implements HashingStrategy {
 	@Override
 	public int getServerIndex(TwitterStatus status) {
 		Long primaryKeyValue = status.getUserId();
-		return getHash(primaryKeyValue);
-	}
-
-	public int getHash(Long primaryKeyValue) {
 		String bin = consistentHash.getBinFor(primaryKeyValue);
 		return systemDetails.getTargetConnectionStrings().indexOf(bin);
 	}
-	
 
 
 
