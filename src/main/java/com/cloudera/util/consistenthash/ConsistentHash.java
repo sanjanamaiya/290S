@@ -55,6 +55,11 @@ public class ConsistentHash<T> {
     this(new MD5HashFunction(), numberOfReplicas, nodes);
   }
 
+  public int getHash(String key)
+  {
+	  return hashFunction.hash(key);
+  }
+  
   public ConsistentHash(HashFunction hashFunction, int numberOfReplicas,
       Collection<T> nodes) {
     this.hashFunction = hashFunction;

@@ -69,13 +69,7 @@ public class SplitTemplate {
 			TwitterStatus status = null;
 
 			while (rs.next()) {
-				status = new TwitterStatus();
-				status.setTwitterStatusId(rs.getLong("TwitterStatusId"));
-				status.setUserId(rs.getLong("UserId"));
-				status.setUserScreenName(rs.getString("UserScreenName"));
-				status.setText(rs.getString("Text"));
-				status.setUserMentions(rs.getString("UserMentions"));
-				status.setHashTags(rs.getString("HashTags"));
+				status = setTwitterStatusDetails(rs);
 				int serverIndex = strategy.getServerIndex(status);
 				hashedList.get(serverIndex).add(status);
 			}
@@ -85,6 +79,19 @@ public class SplitTemplate {
 			throw e;
 		}
 
+	}
+
+	public static TwitterStatus setTwitterStatusDetails(ResultSet rs)
+			throws SQLException {
+		TwitterStatus status;
+		status = new TwitterStatus();
+		status.setTwitterStatusId(rs.getLong("TwitterStatusId"));
+		status.setUserId(rs.getLong("UserId"));
+		status.setUserScreenName(rs.getString("UserScreenName"));
+		status.setText(rs.getString("Text"));
+		status.setUserMentions(rs.getString("UserMentions"));
+		status.setHashTags(rs.getString("HashTags"));
+		return status;
 	}
 
 	private List<ArrayList<TwitterStatus>> setupHashedList(int serverCount) {
@@ -110,7 +117,7 @@ public class SplitTemplate {
 		}
 	}
 
-	private void batchWrite(Connection conn, ArrayList<TwitterStatus> statusList, String tableName)
+	public static void batchWrite(Connection conn, List<TwitterStatus> statusList, String tableName)
 			throws SQLException {
 		String updateString = "insert into main." + tableName + " values(?, ?, ?, ?, ?,?)";
 		try (PreparedStatement stmt = conn.prepareStatement(updateString)) {

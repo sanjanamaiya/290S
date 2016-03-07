@@ -26,9 +26,11 @@ public class ConsistentHashStrategy implements HashingStrategy {
 		String bin = consistentHash.getBinFor(primaryKeyValue);
 		return systemDetails.getTargetConnectionStrings().indexOf(bin);
 	}
-	
 
-
+	public ConsistentHash<String> getConsistentHash()
+	{
+		return consistentHash;
+	}
 
 	@Override
 	public String getTargetTableName() {
