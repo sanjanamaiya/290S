@@ -4,4 +4,5 @@ public interface HashingStrategy {
 	
 	public int getServerIndex(TwitterStatus status);
 	public String getTargetTableName();
+	public String getDistributedDirTableName();
 }

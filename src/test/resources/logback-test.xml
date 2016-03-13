@@ -9,16 +9,39 @@
 	</appender>
 
 	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
-		<file>logs/log-${byDay}.log</file>
-		<append>true</append>
-		<encoder>
-			<pattern>%-4relative [%thread] %-5level %logger{35} - %msg%n
-			</pattern>
-		</encoder>
-	</appender>
+        <file>logs/logfile.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+        </encoder>
+    </appender>
+    <appender name="CONSISTENT-FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/consistent.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+        </encoder>
+    </appender>
+    <appender name="STATIC-FILE" class="ch.qos.logback.core.FileAppender">
+        <file>logs/static.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%-4relative [%thread] %-5level %logger{35} - %msg %n</pattern>
+        </encoder>
+    </appender>
+    <!-- additivity=false ensures analytics data only goes to the analytics log -->
+    <logger name="static" level="DEBUG" additivity="false">
+        <appender-ref ref="STATIC-FILE"/>
+    </logger>
+    <logger name="consistent" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSISTENT-FILE"/>
+    </logger>
+    <root>
+        <appender-ref ref="FILE"/>
+    </root>
 
 
-	<root level="debug">
+	<root level="INFO">
 		<appender-ref ref="STDOUT" />
 		<appender-ref ref="FILE" />
 	</root>

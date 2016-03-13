@@ -1,22 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-    <layout class="ch.qos.logback.classic.PatternLayout">
-      <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
-    </layout>
-  </appender>
-  <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-  <file>System.log</file>
-  <layout class="ch.qos.logback.classic.PatternLayout">
-    <Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</Pattern>
-  </layout>
-</appender>
-  <logger name="com.base22" level="TRACE"/>
-  
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+			</Pattern>
+		</layout>
+	</appender>
+	<appender name="FILE" class="ch.qos.logback.core.FileAppender">
+		<file>logs/logfile.log</file>
+		<layout class="ch.qos.logback.classic.PatternLayout">
+			<Pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n
+			</Pattern>
+		</layout>
+	</appender>
+	<appender name="staticA" class="ch.qos.logback.core.FileAppender">
+		<file>logs/static.log</file>
+		<append>true</append>
+		<encoder>
+			<Pattern>%msg%n
+			</Pattern>
+		</encoder>
+	</appender>
+	<appender name="consistentA" class="ch.qos.logback.core.FileAppender">
+		<file>logs/consistent.log</file>
+		<append>true</append>
+		<encoder>
+			<Pattern>%msg%n
+			</Pattern>
+		</encoder>
+	</appender>
 
-  <root level="debug">
-    <appender-ref ref="STDOUT" />
-    <appender-ref ref="FILE" />
-  </root>
+	<logger name="consistent" level="DEBUG" additivity="false">
+		<appender-ref ref="consistentA" />
+	</logger>
+	<logger name="static" level="DEBUG" additivity="false">
+		<appender-ref ref="staticA" />
+	</logger>
+	<root level="DEBUG">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="FILE" />
+		
+	</root>
 </configuration>

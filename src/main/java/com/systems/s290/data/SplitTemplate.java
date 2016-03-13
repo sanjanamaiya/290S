@@ -6,6 +6,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -15,8 +16,8 @@ import com.systems.s290.db.connection.MySQLDataSource;
 
 public class SplitTemplate {
 
-	private static final int CHUNK_SIZE = 50000;
-	private static final String SOURCE_SELECT_QUERY = "select * from main.Tweets limit ?,? ";
+	protected static final int CHUNK_SIZE = 50000;
+	protected static final String SOURCE_SELECT_QUERY = "select * from main.Tweets limit ?,? ";
 	static final Logger LOG = LoggerFactory.getLogger(SplitTemplate.class);
 
 	public void recreate(HashingStrategy strategy, SystemDetails sysDetails) throws SQLException {
@@ -45,12 +46,13 @@ public class SplitTemplate {
 			int startLimit = 0;
 			while (startLimit < sourceTweetCount) {
 				List<ArrayList<TwitterStatus>> hashedList = setupHashedList(systemDetails.getServerCount());
-				splitInChunks(strategy, hashedList, sourceConn, startLimit);
+				List<HashMap<Long, String>> hashedDirList = setupHashedDirList(systemDetails.getDistributedDirCount());
+				splitInChunks(strategy, hashedList, hashedDirList, sourceConn, startLimit, systemDetails);
 
 				// uncomment to debug:
 				// printList(hashedList);
 
-				distribute(systemDetails, hashedList, strategy.getTargetTableName());
+				distribute(systemDetails, hashedList, hashedDirList, strategy.getTargetTableName(), strategy.getDistributedDirTableName());
 				startLimit = startLimit + CHUNK_SIZE;
 
 			}
@@ -59,8 +61,8 @@ public class SplitTemplate {
 		LOG.info("Split completed in " + (System.nanoTime() - time));
 	}
 
-	private void splitInChunks(HashingStrategy strategy, List<ArrayList<TwitterStatus>> hashedList, Connection sourceConn,
-			int startLimit) throws SQLException {
+	private void splitInChunks(HashingStrategy strategy, List<ArrayList<TwitterStatus>> hashedList, List<HashMap<Long, String>> hashedDirList, Connection sourceConn,
+			int startLimit, SystemDetails systemDetails) throws SQLException {
 
 		try (PreparedStatement stmt = sourceConn.prepareStatement(SOURCE_SELECT_QUERY)) {
 			stmt.setInt(1, startLimit);
@@ -71,6 +73,22 @@ public class SplitTemplate {
 			while (rs.next()) {
 				status = setTwitterStatusDetails(rs);
 				int serverIndex = strategy.getServerIndex(status);
+				
+				// TODO this is a hack, need to set this up
+				if (strategy instanceof DistributedDirectoryStrategy && systemDetails.getDistributedDirCount() > 0)
+				{
+					// Use the staticStrategy to pick a server where this tweet will be saved
+					StaticHashStrategy staticStr = new StaticHashStrategy(systemDetails);
+					int tweetServerIndex = staticStr.getServerIndex(status);
+					String connString = systemDetails.getTargetConnectionStrings().get(tweetServerIndex);
+					
+					// Place the mapping from UserId to server in hashedDirList
+					// Place the Tweet for the UserId in the server indicated by the mapping
+					hashedDirList.get(serverIndex).put(status.getUserId(), connString);
+					serverIndex = tweetServerIndex;
+					
+				}
+				
 				hashedList.get(serverIndex).add(status);
 			}
 
@@ -101,9 +119,24 @@ public class SplitTemplate {
 		}
 		return hashedList;
 	}
+	
+	private List<HashMap<Long, String>> setupHashedDirList(
+			int distributedDirCount) {
+		
+		List<HashMap<Long, String>> hashedList = new ArrayList<HashMap<Long, String>>();
+		for (int index = 0; index < distributedDirCount; index++) {
+			hashedList.add(new HashMap<Long, String>());
+		}
+		return hashedList;
+	}
 
-	private void distribute(SystemDetails sysDetails, List<ArrayList<TwitterStatus>> tweets, String tableName)
+	private void distribute(SystemDetails sysDetails, 
+			List<ArrayList<TwitterStatus>> tweets, 
+			List<HashMap<Long, String>> hashedDirList, 
+			String tableName, 
+			String distrTableName)
 			throws SQLException {
+		
 		int i = 0;
 		for (ArrayList<TwitterStatus> statusList : tweets) {
 			String connString = sysDetails.getTargetConnectionStrings().get(i);
@@ -114,6 +147,76 @@ public class SplitTemplate {
 				throw e;
 			}
 			i++;
+		}
+		
+		int j = 0;
+		for (HashMap<Long, String> distDirMap : hashedDirList)
+		{
+			if (distDirMap != null && distDirMap.size() > 0)
+			{
+				String connString = sysDetails.getDistributedDirConnStrings().get(j);
+				try (Connection conn = MySQLDataSource.getConnection(connString);
+						Connection conn_source = MySQLDataSource.getConnection(sysDetails.getSourceConnectionString())) {
+					batchWrite(conn, conn_source, distDirMap, distrTableName);
+				} catch (SQLException e) {
+					LOG.error("error creating db connection to " + connString + ": ", e);
+					throw e;
+				}
+			}
+			j++;
+		}
+		
+		
+	}
+
+	/**
+	 * Write to DistributedUserHash in the current server and the source server
+	 * May need to separate out the two for re-usability
+	 * @param conn
+	 * @param conn_source
+	 * @param distDirMap
+	 * @param sourceConnection 
+	 * @throws SQLException 
+	 */
+	private void batchWrite(Connection conn, Connection conn_source,
+			HashMap<Long, String> distDirMap, String distrTableName) throws SQLException {
+		
+		String updateString = "insert into main." + distrTableName + " values(?, ?)";
+		try (PreparedStatement stmt = conn.prepareStatement(updateString)) {
+			int j = 0;
+			for (Long twitterId : distDirMap.keySet()) {
+				stmt.setLong(1, twitterId);
+				stmt.setString(2, distDirMap.get(twitterId));
+				stmt.addBatch();
+				j++;
+
+				if ((j % 1000 == 0) || (j == distDirMap.size())) {
+					stmt.executeBatch();
+				}
+			}
+		} catch (SQLException e) {
+			LOG.warn("error inserting rows into server : ", e);
+			throw e;
+		}
+		
+		if (conn_source != null)
+		{
+			try (PreparedStatement stmt = conn_source.prepareStatement(updateString)) {
+				int j = 0;
+				for (Long twitterId : distDirMap.keySet()) {
+					stmt.setLong(1, twitterId);
+					stmt.setString(2, distDirMap.get(twitterId));
+					stmt.addBatch();
+					j++;
+
+					if ((j % 1000 == 0) || (j == distDirMap.size())) {
+						stmt.executeBatch();
+					}
+				}
+			} catch (SQLException e) {
+				LOG.warn("error inserting rows into source server: ", e);
+				throw e;
+			}
 		}
 	}
 

@@ -12,7 +12,7 @@ public class ConsistentHashStrategy implements HashingStrategy {
 	private SystemDetails systemDetails;
 	
 	public ConsistentHashStrategy(SystemDetails systemDetails) {
-		consistentHash = new ConsistentHash<String>(systemDetails.getServerCount(), systemDetails.getConnectionStrings());
+		consistentHash = new ConsistentHash<String>(systemDetails.getServerCount(), systemDetails.getTargetConnectionStrings());
 		this.systemDetails = systemDetails;
 	}
 	
@@ -35,6 +35,11 @@ public class ConsistentHashStrategy implements HashingStrategy {
 	@Override
 	public String getTargetTableName() {
 		return "TweetsC";
+	}
+
+	@Override
+	public String getDistributedDirTableName() {
+		return "";
 	}
 
 	
